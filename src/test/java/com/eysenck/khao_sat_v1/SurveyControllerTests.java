@@ -9,7 +9,9 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.options;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -52,5 +54,34 @@ class SurveyControllerTests {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.status").value(400))
                 .andExpect(jsonPath("$.validationErrors").isMap());
+    }
+
+    @Test
+    @DisplayName("CORS: OPTIONS preflight từ origin khichat.vercel.app được chấp nhận")
+    void testCorsPreflightAllowedOriginKhichat() throws Exception {
+        mockMvc.perform(options("/api/surveys/start")
+                        .header("Origin", "https://khichat.vercel.app")
+                        .header("Access-Control-Request-Method", "POST"))
+                .andExpect(status().isOk())
+                .andExpect(header().string("Access-Control-Allow-Origin", "https://khichat.vercel.app"));
+    }
+
+    @Test
+    @DisplayName("CORS: OPTIONS preflight từ origin cũ hieu-minh.vercel.app vẫn được chấp nhận")
+    void testCorsPreflightAllowedOriginLegacy() throws Exception {
+        mockMvc.perform(options("/api/surveys/start")
+                        .header("Origin", "https://hieu-minh.vercel.app")
+                        .header("Access-Control-Request-Method", "POST"))
+                .andExpect(status().isOk())
+                .andExpect(header().string("Access-Control-Allow-Origin", "https://hieu-minh.vercel.app"));
+    }
+
+    @Test
+    @DisplayName("CORS: OPTIONS preflight từ origin lạ bị từ chối 403 Forbidden")
+    void testCorsPreflightUnauthorizedOrigin() throws Exception {
+        mockMvc.perform(options("/api/surveys/start")
+                        .header("Origin", "https://unauthorized-domain.com")
+                        .header("Access-Control-Request-Method", "POST"))
+                .andExpect(status().isForbidden());
     }
 }
